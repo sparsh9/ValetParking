@@ -6,6 +6,7 @@ class ValetParking
 
   $space = CSV.read("ParkingLot.csv")
   $space = $space.to_a
+  puts $space[0][2]
 
   def initialize(choice)
     if choice == "1"
@@ -23,7 +24,6 @@ class ValetParking
 
 
   def admitTheCar()
-    puts "here"
     result = checkParkingSpace()
     if result == "success"
       puts ("Input License Plate Number")
@@ -31,11 +31,15 @@ class ValetParking
       puts("Input Carsize")
       carsize = gets.chomp
       if carsize.downcase == "s"
-        checkAndUpdateSmallSpace(licensePlateNumber)
+        checkAndUpdateSmallSpace(licensePlateNumber, carsize)
       elsif carsize.downcase == "m"
-        checkAndUpdateMediumSpace(licensePlateNumber)
+        resullt = checkAndUpdateMediumSpace(licensePlateNumber, carsize)
+        if result == "failed"
+          rearrangeAndUpdateMediumSpace(licensePlateNumber, carsize)
+          return "success"
+        end
       elsif carsize.downcase == "l"
-        checkAndUpdateLargeSpace(licensePlateNumber)
+        checkAndUpdateLargeSpace(licensePlateNumber, carsize)
       end
     end
   end
@@ -46,6 +50,7 @@ class ValetParking
     (0..$space.count-1).each do |i|
       if ($space[i][1].downcase == licensePlateNumber.downcase)
         $space[i][1] = 0
+        $space[i][2] = 0
         updateCsvFile($space)
         puts "Your car is out of parking"
         break
@@ -70,45 +75,112 @@ class ValetParking
     end
   end
 
-  def checkAndUpdateSmallSpace(licensePlateNumber)
+  def checkAndUpdateSmallSpace(licensePlateNumber, carsize)
     (0..$space.count-1).each do |i|
       if $space[i][1] ==  '0'
         $space[i][1] = licensePlateNumber
+        $space[i][2] = carsize
         updateCsvFile($space)
         puts "Your car is parked"
+        return "success"
         break
       end
     end
   end
 
-  def checkAndUpdateMediumSpace(licensePlateNumber)
+  def checkAndUpdateMediumSpace(licensePlateNumber, carsize)
     (0..$space.count-1).each do |i|
-      if ($space[i][0] =~ /m/ || $space[i][0] =~ /l/) && $space[i][1] == '0'
+
+      if ($space[i][0].downcase =~ /m/ || $space[i][0].downcase =~ /l/) && $space[i][1] == '0' && $space[i][2] == '0'
         $space[i][1] = licensePlateNumber
+        $space[i][2] = carsize
         updateCsvFile($space)
         puts "Your car is parked"
+        return "success"
         break
       end
     end
+    return "failed"
   end
 
-  def  checkAndUpdateLargeSpace(licensePlateNumber)
+  def  checkAndUpdateLargeSpace(licensePlateNumber, carsize)
     (0..$space.count-1).each do |i|
-      if $space[i][0] =~ /l/ && $space[i][1] == '0'
+      if $space[i][0].downcase =~ /l/ && $space[i][1] == '0'
         $space[i][1] = licensePlateNumber
         updateCsvFile($space)
         puts "Your car is parked"
+        return "success"
         break
       else
-
+        rearrangeAndUpdateLargeSpace(licensePlateNumber, carsize)
+        break
       end
     end
   end
+
+  # def rearrangeAndUpdateSmallSpace(licensePlateNumber, carsize)
+  #   (0..$space.count-1).each do |i|
+  #     if $space[i][1] ==  '0'
+  #       $space[i][1] = licensePlateNumber
+  #       $space[i][2] = carsize
+  #       updateCsvFile($space)
+  #       puts "Your car is parked"
+  #       return "success"
+  #       break
+  #     end
+  #   end
+  # end
+
+  def rearrangeAndUpdateMediumSpace(licensePlateNumber, carsize)
+    (0..$space.count-1).each do |i|
+      if ($space[i][0].downcase =~ /m/ && $space[i][2] == 's')
+        (0..$space.count-1).each do |j|
+          if($space[j][0].downcase =~ /s/ && $space[j][1] == '0' && $space[j][2] == '0')
+            $space[j][1] = $space[i][1]
+            $space[j][2] = $space[i][2]
+            $space[i][1] = licensePlateNumber
+            $space[i][2] = carsize
+            updateCsvFile($space)
+            puts "Your car is parked"
+            return "success"
+            break
+          end
+        end
+      end
+    end
+  end
+
+  def rearrangeAndUpdateLargeSpace(licensePlateNumber, carsize)
+    (0..$space.count-1).each do |i|
+      if ($space[i][0].downcase =~ /l/ && $space[i][2] == 'm')
+        result = checkAndUpdateMediumSpace($space[i][1], $space[i][2])
+        if result == "success"
+          $space[i][1] = licensePlateNumber
+          $space[i][2] = carsize
+          updateCsvFile($space)
+          break
+        end
+      elsif ($space[i][0].downcase =~ /l/ && $space[i][2].downcase == 's')
+        result = checkAndUpdateSmallSpace($space[i][1], $space[i][2])
+        if result == "success"
+          $space[i][1] = licensePlateNumber
+          $space[i][2] = carsize
+           updateCsvFile($space)
+          break
+        end
+        break
+      else
+        puts "No space available"
+        break
+      end
+    end
+  end
+
 
   def updateCsvFile(space)
     CSV.open 'ParkingLot.csv', 'wb' do |csv|
-      (0..space.count-1).each do |array|
-        csv << space[array]
+      (0..space.count-1).each do |i|
+        csv << space[i]
       end
     end
   end

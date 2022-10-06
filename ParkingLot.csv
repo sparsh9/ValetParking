@@ -1,4 +1,7 @@
-parking_space,license_plate_number
-1s,0
-1m,AC
-1l,AD
+parking_space,licence_plate_number,car_size
+1s,A,s
+1m,B,m
+1l,C,m
+2s,D,s
+2m,E,m
+2l,F,l
